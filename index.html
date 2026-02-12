@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#B71C1C" />
 
-  <!-- iOS: 加入主畫面後用「App 模式」開（底部 Safari 工具列會消失） -->
+  <!-- iOS：加入主畫面後用 App 模式（Safari 工具列消失） -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="台彩選號" />
@@ -23,16 +23,16 @@
       --red:#C62828;
       --red2:#D32F2F;
       --text:#1B1B1B;
-      --muted:#6b6b6b;
       --stroke:rgba(0,0,0,.10);
       --shadow:0 14px 28px rgba(0,0,0,.20);
-      --radius:18px;
 
       --cardW:76px;
       --cardH:112px;
       --gap:10px;
     }
     *{box-sizing:border-box}
+
+    /* iOS standalone + translucent 狀態列：用 safe-area 避免被動態島/時間遮住 */
     body{
       margin:0;
       font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei","Noto Sans TC",system-ui,Segoe UI,Roboto,Arial,sans-serif;
@@ -40,11 +40,23 @@
       color:var(--text);
       -webkit-font-smoothing:antialiased;
       -moz-osx-font-smoothing:grayscale;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
     }
-    .wrap{max-width:980px;margin:0 auto;padding:18px 14px 22px}
+
+    .wrap{
+      max-width:980px;
+      margin:0 auto;
+      padding: calc(14px + env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom));
+    }
+
     .brand{
-      display:flex;align-items:flex-end;justify-content:space-between;gap:12px;
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:12px;
       margin:2px 2px 12px;
+      padding-top: 4px;
     }
     .brand h1{
       margin:0;
@@ -54,9 +66,10 @@
       font-size:22px;
     }
     .brand .sub{
-      color:rgba(255,255,255,.75);
+      color:rgba(255,255,255,.78);
       font-size:12.5px;
       font-weight:700;
+      margin-top:4px;
     }
     .pill{
       background:rgba(198,40,40,.12);
@@ -68,6 +81,7 @@
       font-weight:900;
       white-space:nowrap;
     }
+
     .shell{
       background:linear-gradient(180deg, rgba(255,243,224,.98), rgba(255,243,224,.92));
       border:1px solid rgba(255,255,255,.35);
@@ -77,13 +91,14 @@
     }
     .top{
       padding:14px;
-      background:rgba(255,243,224,.85);
+      background:rgba(255,243,224,.86);
       border-bottom:1px solid rgba(0,0,0,.06);
     }
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     .row + .row{margin-top:10px}
     label{font-weight:900}
     select,button,textarea{font:inherit}
+
     select{
       padding:11px 12px;
       border-radius:14px;
@@ -93,6 +108,7 @@
       outline:none;
       font-weight:800;
     }
+
     button{
       padding:11px 14px;
       border-radius:14px;
@@ -135,6 +151,7 @@
       letter-spacing:.4px;
     }
 
+    /* Deck baseline */
     .deck{
       display:flex;
       gap:var(--gap);
@@ -152,13 +169,47 @@
       to{transform:translateX(0);opacity:1}
     }
 
-    /* 威力彩：強制換行，第二區到第二排中央 */
-    .deck.power7{
-      flex-wrap:wrap;
-      max-width: calc(var(--cardW) * 6 + var(--gap) * 5);
-      margin:0 auto;
+    /* Grid：6 張（上三下三） */
+    .deck.grid6{
+      display:grid;
+      grid-template-columns: repeat(3, var(--cardW));
+      grid-auto-rows: var(--cardH);
+      gap: var(--gap);
+      justify-content:center;
+      align-content:center;
+      margin: 0 auto;
+      transform:translateX(-110%);
+      opacity:0;
     }
-    .deck .break{flex-basis:100%; height:0; padding:0; margin:0;}
+    .deck.grid6.enter{
+      animation:slideIn .28s cubic-bezier(.18,.86,.24,1) forwards;
+    }
+
+    /* 威力彩：預設 4x2，右下角放第二區（第二排第4張） */
+    .deck.powerGrid{
+      display:grid;
+      grid-template-columns: repeat(4, var(--cardW));
+      grid-auto-rows: var(--cardH);
+      gap: var(--gap);
+      justify-content:center;
+      align-content:center;
+      margin: 0 auto;
+      transform:translateX(-110%);
+      opacity:0;
+    }
+    .deck.powerGrid.enter{
+      animation:slideIn .28s cubic-bezier(.18,.86,.24,1) forwards;
+    }
+
+    /* 橫向/寬螢幕：威力彩一排 7 張 */
+    @media (min-width: 640px){
+      .deck.powerGrid{
+        display:flex;
+        flex-wrap:nowrap;
+        justify-content:center;
+        align-items:center;
+      }
+    }
 
     .card{
       width:var(--cardW);
@@ -173,7 +224,7 @@
       will-change:transform;
     }
 
-    /* 第二區：更明顯的特殊框 + 金光 */
+    /* 威力彩第二區：更明顯 */
     .card.special{
       border-width:6px;
       border-color:#FFF176;
@@ -252,7 +303,6 @@
       .face{font-size:26px}
       button{padding:11px 12px}
       select{min-width:160px}
-      .wrap{padding:16px 12px 20px}
     }
   </style>
 </head>
@@ -309,6 +359,7 @@
 
 <script>
 (() => {
+  // 你不需要理解它：這只是「集中調參數」的地方
   const CFG = {
     backSymbol: "👑",
     entrancePauseMs: 320,
@@ -433,23 +484,45 @@
     return { card, face };
   }
 
+  // 核心：大樂透/威力彩排版規則
   function renderDeck(count, specials, ticket){
     clearDeck();
 
-    // 威力彩固定 6+1：第二區換行到第二排中央
-    if(ticket === "威力彩" && count === 7){
-      elDeck.classList.add("power7");
+    // 大樂透：6 張 → 上三下三
+    if(ticket === "大樂透" && count === 6){
+      elDeck.classList.add("grid6");
     }
 
+    // 威力彩：預設 4x2，右下角放第二區（第二排第4張）
+    // 寬螢幕會被 CSS media query 自動改成一排 7 張
+    if(ticket === "威力彩" && count === 7){
+      elDeck.classList.add("powerGrid");
+      const refs = [];
+
+      const addCard = (i) => {
+        const ref = makeCard(!!specials[i]);
+        elDeck.appendChild(ref.card);
+        refs.push(ref);
+      };
+      const addSpacer = () => {
+        const s = document.createElement("div");
+        s.style.width = "var(--cardW)";
+        s.style.height = "var(--cardH)";
+        s.style.visibility = "hidden";
+        elDeck.appendChild(s);
+      };
+
+      // 第一排：3張 + 空格（第4格空著）
+      addCard(0); addCard(1); addCard(2); addSpacer();
+      // 第二排：3張 + 第二區（special）
+      addCard(3); addCard(4); addCard(5); addCard(6);
+
+      return refs;
+    }
+
+    // 其他彩種：維持置中一排
     const refs = [];
     for(let i=0;i<count;i++){
-      // 在第 7 張（第二區）前插入換行
-      if(ticket === "威力彩" && count === 7 && i === 6){
-        const br = document.createElement("div");
-        br.className = "break";
-        elDeck.appendChild(br);
-      }
-
       const ref = makeCard(!!specials[i]);
       elDeck.appendChild(ref.card);
       refs.push(ref);
@@ -515,7 +588,6 @@
   async function onGen(){
     if(busy) return;
     setBusy(true);
-
     try{
       await runSequence(elTicket.value);
     }finally{
