@@ -1,0 +1,10 @@
+{
+  "name": "台彩隨機選號器",
+  "short_name": "台彩選號",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#B71C1C",
+  "theme_color": "#B71C1C",
+  "icons": []
+}
