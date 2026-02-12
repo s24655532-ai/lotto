@@ -4,7 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#B71C1C" />
+
+  <!-- iOS: 加入主畫面後用「App 模式」開（底部 Safari 工具列會消失） -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="台彩選號" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+
   <title>台彩隨機選號器</title>
+
   <style>
     :root{
       --bg:#B71C1C;
@@ -19,6 +27,7 @@
       --stroke:rgba(0,0,0,.10);
       --shadow:0 14px 28px rgba(0,0,0,.20);
       --radius:18px;
+
       --cardW:76px;
       --cardH:112px;
       --gap:10px;
@@ -34,7 +43,7 @@
     }
     .wrap{max-width:980px;margin:0 auto;padding:18px 14px 22px}
     .brand{
-      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      display:flex;align-items:flex-end;justify-content:space-between;gap:12px;
       margin:2px 2px 12px;
     }
     .brand h1{
@@ -48,6 +57,16 @@
       color:rgba(255,255,255,.75);
       font-size:12.5px;
       font-weight:700;
+    }
+    .pill{
+      background:rgba(198,40,40,.12);
+      color:#8e1b1b;
+      border:1px solid rgba(198,40,40,.22);
+      padding:5px 10px;
+      border-radius:999px;
+      font-size:12.5px;
+      font-weight:900;
+      white-space:nowrap;
     }
     .shell{
       background:linear-gradient(180deg, rgba(255,243,224,.98), rgba(255,243,224,.92));
@@ -64,9 +83,7 @@
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     .row + .row{margin-top:10px}
     label{font-weight:900}
-    select,button,textarea{
-      font:inherit;
-    }
+    select,button,textarea{font:inherit}
     select{
       padding:11px 12px;
       border-radius:14px;
@@ -117,16 +134,6 @@
       font-size:14px;
       letter-spacing:.4px;
     }
-    .pill{
-      background:rgba(198,40,40,.12);
-      color:#8e1b1b;
-      border:1px solid rgba(198,40,40,.22);
-      padding:5px 10px;
-      border-radius:999px;
-      font-size:12.5px;
-      font-weight:900;
-      white-space:nowrap;
-    }
 
     .deck{
       display:flex;
@@ -136,6 +143,7 @@
       position:relative;
       transform:translateX(-110%);
       opacity:0;
+      flex-wrap:nowrap;
     }
     .deck.enter{
       animation:slideIn .28s cubic-bezier(.18,.86,.24,1) forwards;
@@ -143,6 +151,14 @@
     @keyframes slideIn{
       to{transform:translateX(0);opacity:1}
     }
+
+    /* 威力彩：強制換行，第二區到第二排中央 */
+    .deck.power7{
+      flex-wrap:wrap;
+      max-width: calc(var(--cardW) * 6 + var(--gap) * 5);
+      margin:0 auto;
+    }
+    .deck .break{flex-basis:100%; height:0; padding:0; margin:0;}
 
     .card{
       width:var(--cardW);
@@ -156,7 +172,17 @@
       perspective:900px;
       will-change:transform;
     }
-    .card.special{border-width:5px}
+
+    /* 第二區：更明顯的特殊框 + 金光 */
+    .card.special{
+      border-width:6px;
+      border-color:#FFF176;
+      box-shadow:
+        0 10px 18px rgba(0,0,0,.16),
+        0 0 0 2px rgba(255,241,118,.35),
+        0 0 18px rgba(255,241,118,.55);
+    }
+
     .face,.back{
       position:absolute;inset:0;
       display:flex;align-items:center;justify-content:center;
@@ -185,7 +211,6 @@
       text-shadow:0 2px 0 rgba(0,0,0,.12);
     }
 
-    /* Flip: two-phase to look snappier on iPhone */
     .card.flipping{
       animation:flip .22s cubic-bezier(.2,.8,.2,1) forwards;
     }
@@ -221,7 +246,6 @@
       color:#111;
     }
 
-    /* Mobile tuning */
     @media (max-width:520px){
       :root{ --cardW:64px; --cardH:104px; --gap:8px; }
       .back{font-size:34px}
@@ -232,12 +256,13 @@
     }
   </style>
 </head>
+
 <body>
   <div class="wrap">
     <div class="brand">
       <div>
         <h1>台彩隨機選號器</h1>
-        <div class="sub">娛樂用｜按一次出一組，不順眼就再按一次</div>
+        <div class="sub">按一次出一組，不順眼就再按一次</div>
       </div>
       <div class="pill" id="pillTicket">—</div>
     </div>
@@ -255,9 +280,9 @@
             <option>刮刮樂（幸運數字）</option>
           </select>
         </div>
+
         <div class="row">
           <button id="btnGen" class="btn-primary">產生一組</button>
-          <button id="btnCopy" class="btn-gold">複製結果</button>
           <button id="btnClear" class="btn-gold">清空</button>
         </div>
       </div>
@@ -284,29 +309,29 @@
 
 <script>
 (() => {
-  // ---------- Config ----------
-  const BACK_SYMBOL = "👑";
-  const ENTRANCE_PAUSE_MS = 320;  // 進場後停頓，確保看得到牌背
-  const FLIP_GAP_MS = 90;         // 每張翻牌間隔（iPhone 看起來更舒服）
-  const DECK_ENTER_MS = 280;
-  const MAX_HISTORY_LINES = 240;
+  const CFG = {
+    backSymbol: "👑",
+    entrancePauseMs: 320,
+    deckEnterMs: 280,
+    flipAnimMs: 220,
+    flipGapMs: 90,
+    keepHistory: true,
+    maxHistoryLines: 240
+  };
 
-  // ---------- Rules ----------
   const rules = {
     "大樂透": { type:"lotto", main:[1,49,6], label:"6/49" },
-    "威力彩": { type:"power", main:[1,38,6], special:[1,8,1], label:"6/38 + 1/8" },
+    "威力彩": { type:"power", main:[1,38,6], special:[1,8,1], label:"第一區 6/38｜第二區 1/8" },
     "今彩539": { type:"lotto", main:[1,39,5], label:"5/39" },
     "3星彩": { type:"digits", len:3, label:"3位數" },
     "4星彩": { type:"digits", len:4, label:"4位數" },
     "刮刮樂（幸運數字）": { type:"scratch", range:[1,100], label:"1~100" }
   };
 
-  // ---------- DOM ----------
   const elTicket = document.getElementById("ticket");
   const elDeck   = document.getElementById("deck");
   const elOut    = document.getElementById("output");
   const btnGen   = document.getElementById("btnGen");
-  const btnCopy  = document.getElementById("btnCopy");
   const btnClear = document.getElementById("btnClear");
 
   const pillTicket = document.getElementById("pillTicket");
@@ -318,7 +343,6 @@
   function setBusy(v){
     busy = v;
     btnGen.disabled = v;
-    btnCopy.disabled = v;
     btnClear.disabled = v;
     elTicket.disabled = v;
   }
@@ -387,7 +411,7 @@
   }
 
   function clearDeck(){
-    elDeck.classList.remove("enter");
+    elDeck.className = "deck";
     elDeck.innerHTML = "";
     void elDeck.offsetWidth;
   }
@@ -398,21 +422,34 @@
 
     const back = document.createElement("div");
     back.className = "back";
-    back.textContent = BACK_SYMBOL;
+    back.textContent = CFG.backSymbol;
 
     const face = document.createElement("div");
     face.className = "face";
-    face.textContent = ""; // 防止提前露牌
+    face.textContent = "";
 
     card.appendChild(back);
     card.appendChild(face);
     return { card, face };
   }
 
-  function renderDeck(count, specials){
+  function renderDeck(count, specials, ticket){
     clearDeck();
+
+    // 威力彩固定 6+1：第二區換行到第二排中央
+    if(ticket === "威力彩" && count === 7){
+      elDeck.classList.add("power7");
+    }
+
     const refs = [];
     for(let i=0;i<count;i++){
+      // 在第 7 張（第二區）前插入換行
+      if(ticket === "威力彩" && count === 7 && i === 6){
+        const br = document.createElement("div");
+        br.className = "break";
+        elDeck.appendChild(br);
+      }
+
       const ref = makeCard(!!specials[i]);
       elDeck.appendChild(ref.card);
       refs.push(ref);
@@ -422,29 +459,33 @@
 
   function deckEnter(){
     elDeck.classList.add("enter");
-    return sleep(DECK_ENTER_MS);
+    return sleep(CFG.deckEnterMs);
   }
 
   async function flipOne(ref, value){
-    // set value right before flip; still hidden until rotated
     ref.face.textContent = value;
 
     ref.card.classList.remove("flipping");
-    ref.card.style.transform = ""; // reset lock
+    ref.card.style.transform = "";
     void ref.card.offsetWidth;
 
     ref.card.classList.add("flipping");
-    await sleep(220);
+    await sleep(CFG.flipAnimMs);
     ref.card.classList.remove("flipping");
     ref.card.style.transform = "rotateY(180deg)";
   }
 
   function appendOutput(s){
+    if(!CFG.keepHistory){
+      elOut.value = s.trimEnd() + "\n";
+      elOut.scrollTop = elOut.scrollHeight;
+      return;
+    }
     const cur = elOut.value || "";
     let next = (cur ? (cur.trimEnd() + "\n") : "") + s.trimEnd();
     const lines = next.split("\n");
-    if(lines.length > MAX_HISTORY_LINES){
-      next = lines.slice(lines.length - MAX_HISTORY_LINES).join("\n");
+    if(lines.length > CFG.maxHistoryLines){
+      next = lines.slice(lines.length - CFG.maxHistoryLines).join("\n");
     }
     elOut.value = next + "\n";
     elOut.scrollTop = elOut.scrollHeight;
@@ -454,19 +495,18 @@
     const pack = buildOneSet(ticket);
     const { cards, specials, text } = pack;
 
-    // Pills
     pillTicket.textContent = ticket;
     pillRule.textContent = describeRule(ticket);
     pillLast.textContent = ticket;
 
-    const refs = renderDeck(cards.length, specials);
+    const refs = renderDeck(cards.length, specials, ticket);
 
     await deckEnter();
-    await sleep(ENTRANCE_PAUSE_MS);
+    await sleep(CFG.entrancePauseMs);
 
     for(let i=0;i<cards.length;i++){
       await flipOne(refs[i], cards[i]);
-      await sleep(FLIP_GAP_MS);
+      await sleep(CFG.flipGapMs);
     }
 
     appendOutput(text + "\n");
@@ -475,26 +515,11 @@
   async function onGen(){
     if(busy) return;
     setBusy(true);
+
     try{
       await runSequence(elTicket.value);
-    }catch(e){
-      appendOutput(`【${elTicket.value}】\n(發生錯誤：${e?.message || e})\n\n`);
     }finally{
       setBusy(false);
-    }
-  }
-
-  async function onCopy(){
-    const text = elOut.value.trim();
-    if(!text) return;
-
-    try{
-      await navigator.clipboard.writeText(text);
-    }catch(_e){
-      // fallback: select
-      elOut.focus();
-      elOut.select();
-      document.execCommand && document.execCommand("copy");
     }
   }
 
@@ -505,12 +530,9 @@
     clearDeck();
   }
 
-  // Wire
   btnGen.addEventListener("click", onGen);
-  btnCopy.addEventListener("click", onCopy);
   btnClear.addEventListener("click", onClear);
 
-  // Init pills
   pillTicket.textContent = elTicket.value;
   pillRule.textContent = describeRule(elTicket.value);
   pillLast.textContent = "—";
