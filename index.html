@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#B71C1C" />
+  <title>台彩隨機選號器</title>
+  <style>
+    :root{
+      --bg:#B71C1C;
+      --panel:#FFF3E0;
+      --gold:#FBC02D;
+      --red:#C62828;
+      --red2:#D32F2F;
+      --text:#1B1B1B;
+      --muted:#6b6b6b;
+      --cardW:86px;
+      --cardH:118px;
+      --gap:10px;
+      --radius:14px;
+      --shadow:0 10px 25px rgba(0,0,0,.18);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Microsoft JhengHei","PingFang TC","Noto Sans TC",system-ui,Segoe UI,Roboto,Arial,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    .wrap{max-width:980px;margin:0 auto;padding:16px 14px 18px}
+    .title{
+      color:var(--gold);
+      font-weight:800;
+      font-size:22px;
+      letter-spacing:.5px;
+      margin:6px 2px 12px;
+    }
+    .panel{
+      background:var(--panel);
+      border-radius:18px;
+      padding:14px;
+      box-shadow:var(--shadow);
+    }
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .row + .row{margin-top:10px}
+    label{font-weight:700}
+    select,button,textarea,input{
+      font:inherit;
+    }
+    select{
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(0,0,0,.12);
+      background:#fff;
+      min-width:190px;
+      outline:none;
+    }
+    button{
+      padding:11px 14px;
+      border-radius:12px;
+      border:0;
+      font-weight:800;
+      letter-spacing:.3px;
+      cursor:pointer;
+      user-select:none;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .btn-primary{background:var(--red2);color:#fff}
+    .btn-gold{background:var(--gold);color:#1b1b1b}
+    button:disabled{opacity:.55;cursor:not-allowed}
+    .hint{
+      color:var(--muted);
+      font-size:12.5px;
+      margin-top:6px;
+      line-height:1.35;
+    }
+
+    /* Stage (cards) */
+    .stage{
+      margin-top:12px;
+      background:#fff8ee;
+      border-radius:16px;
+      padding:14px 12px;
+      overflow:hidden;
+      position:relative;
+      min-height:160px;
+      border:1px solid rgba(0,0,0,.06);
+    }
+    .deck{
+      display:flex;
+      gap:var(--gap);
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      transform:translateX(-120%);
+      opacity:0;
+    }
+    .deck.enter{
+      animation:slideIn .26s cubic-bezier(.18,.86,.24,1) forwards;
+    }
+    @keyframes slideIn{
+      to{transform:translateX(0);opacity:1}
+    }
+    .card{
+      width:var(--cardW);
+      height:var(--cardH);
+      border-radius:var(--radius);
+      background:var(--red);
+      border:3px solid var(--gold);
+      box-shadow:0 10px 18px rgba(0,0,0,.18);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      transform-style:preserve-3d;
+      perspective:800px;
+    }
+    .card.special{border-width:5px}
+    .face, .back{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      backface-visibility:hidden;
+      border-radius:var(--radius);
+      color:var(--gold);
+      font-weight:900;
+    }
+    .back{
+      font-size:38px; /* 皇冠大小 */
+      transform:rotateY(0deg);
+      background:var(--red);
+    }
+    .face{
+      font-size:30px;
+      transform:rotateY(180deg);
+      background:var(--red);
+    }
+    .card.flipping{
+      animation:flip .18s ease-in-out forwards;
+    }
+    @keyframes flip{
+      from{transform:rotateY(0deg)}
+      to{transform:rotateY(180deg)}
+    }
+
+    /* Results */
+    .results{
+      margin-top:12px;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:10px;
+    }
+    .resultHead{
+      font-weight:900;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .badge{
+      background:rgba(198,40,40,.12);
+      color:#8e1b1b;
+      border:1px solid rgba(198,40,40,.25);
+      padding:4px 10px;
+      border-radius:999px;
+      font-size:12.5px;
+      font-weight:800;
+      white-space:nowrap;
+    }
+    textarea{
+      width:100%;
+      min-height:140px;
+      resize:none;
+      border-radius:14px;
+      border:1px solid rgba(0,0,0,.12);
+      padding:12px;
+      line-height:1.45;
+      background:#fff8e1;
+      outline:none;
+    }
+
+    /* Mobile tuning */
+    @media (max-width:520px){
+      :root{ --cardW:72px; --cardH:106px; --gap:8px; }
+      .back{font-size:34px}
+      .face{font-size:28px}
+      .title{font-size:20px}
+      select{min-width:160px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">台彩隨機選號器</div>
+
+    <div class="panel">
+      <div class="row">
+        <label for="ticket">彩券票種</label>
+        <select id="ticket">
+          <option>威力彩</option>
+          <option>大樂透</option>
+          <option>今彩539</option>
+          <option>3星彩</option>
+          <option>4星彩</option>
+          <option>刮刮樂（幸運數字）</option>
+        </select>
+
+        <button id="btnGen" class="btn-primary">產生一組</button>
+        <button id="btnCopy" class="btn-gold">複製結果</button>
+        <button id="btnClear" class="btn-gold">清空</button>
+      </div>
+
+      <div class="hint">
+        iPhone 離線使用：把這個檔案存到「檔案」App，長按 → 分享 →「在 Safari 中開啟」。<br/>
+        若剪貼簿被限制，會自動改成「選取文字」，你再手動複製即可。
+      </div>
+
+      <div class="stage" aria-label="cards stage">
+        <div id="deck" class="deck" aria-live="polite"></div>
+      </div>
+
+      <div class="results">
+        <div class="resultHead">
+          <div>結果</div>
+          <div id="ticketBadge" class="badge">—</div>
+        </div>
+        <textarea id="output" readonly placeholder="按「產生一組」後，這裡會顯示票種與號碼。"></textarea>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // ----- Config -----
+  const BACK_SYMBOL = "👑";
+  const ENTRANCE_PAUSE_MS = 280;  // 進場後停一下再翻
+  const FLIP_GAP_MS = 70;         // 每張翻牌間隔
+  const DECK_ENTER_MS = 260;      // 進場動畫時間（對應 CSS slideIn）
+  const MAX_HISTORY_LINES = 300;  // 避免 textarea 太肥
+
+  // ----- Rules -----
+  const rules = {
+    "大樂透": { type:"lotto", main:[1,49,6] },
+    "威力彩": { type:"power", main:[1,38,6], special:[1,8,1] },
+    "今彩539": { type:"lotto", main:[1,39,5] },
+    "3星彩": { type:"digits", len:3 },
+    "4星彩": { type:"digits", len:4 },
+    "刮刮樂（幸運數字）": { type:"scratch", range:[1,100] }
+  };
+
+  // ----- DOM -----
+  const elTicket = document.getElementById("ticket");
+  const elDeck   = document.getElementById("deck");
+  const elOut    = document.getElementById("output");
+  const elBadge  = document.getElementById("ticketBadge");
+  const btnGen   = document.getElementById("btnGen");
+  const btnCopy  = document.getElementById("btnCopy");
+  const btnClear = document.getElementById("btnClear");
+
+  let busy = false;
+
+  function setBusy(v){
+    busy = v;
+    btnGen.disabled = v;
+    btnCopy.disabled = v;
+    btnClear.disabled = v;
+    elTicket.disabled = v;
+  }
+
+  function randInt(min, max){
+    return Math.floor(Math.random()*(max-min+1))+min;
+  }
+
+  function sampleUnique(min, max, k){
+    // Fisher–Yates partial shuffle
+    const arr = [];
+    for(let i=min;i<=max;i++) arr.push(i);
+    for(let i=arr.length-1;i>0;i--){
+      const j = randInt(0,i);
+      [arr[i],arr[j]] = [arr[j],arr[i]];
+    }
+    return arr.slice(0,k).sort((a,b)=>a-b);
+  }
+
+  function fmt2(n){ return String(n).padStart(2,"0"); }
+
+  function buildOneSet(ticket){
+    const r = rules[ticket];
+    if(!r) return { ticket, cards:[], specials:[], text:`【${ticket}】\n(規則不存在)\n` };
+
+    if(r.type === "scratch"){
+      const n = randInt(r.range[0], r.range[1]);
+      return {
+        ticket,
+        cards:[String(n)],
+        specials:[true],
+        text:`【${ticket}】\n幸運數字：${n}\n`
+      };
+    }
+
+    if(r.type === "digits"){
+      const digits = Array.from({length:r.len}, ()=>randInt(0,9));
+      return {
+        ticket,
+        cards:digits.map(String),
+        specials:Array(r.len).fill(false),
+        text:`【${ticket}】\n${digits.join("")}\n`
+      };
+    }
+
+    if(r.type === "power"){
+      const main = sampleUnique(...r.main);
+      const sp   = sampleUnique(...r.special)[0];
+      return {
+        ticket,
+        cards:[...main.map(n=>fmt2(n)), fmt2(sp)],
+        specials:[false,false,false,false,false,false,true],
+        text:`【${ticket}】\n第一區：${main.map(n=>fmt2(n)).join(" ")}\n第二區：${fmt2(sp)}\n`
+      };
+    }
+
+    // lotto
+    const main = sampleUnique(...r.main);
+    return {
+      ticket,
+      cards:main.map(n=>fmt2(n)),
+      specials:Array(main.length).fill(false),
+      text:`【${ticket}】\n${main.map(n=>fmt2(n)).join(" ")}\n`
+    };
+  }
+
+  function clearDeck(){
+    elDeck.classList.remove("enter");
+    elDeck.innerHTML = "";
+    // force reflow so next enter anim always plays
+    void elDeck.offsetWidth;
+  }
+
+  function makeCard(isSpecial){
+    const card = document.createElement("div");
+    card.className = "card" + (isSpecial ? " special":"");
+    const back = document.createElement("div");
+    back.className = "back";
+    back.textContent = BACK_SYMBOL;
+    const face = document.createElement("div");
+    face.className = "face";
+    face.textContent = ""; // 防止提前露牌
+    card.appendChild(back);
+    card.appendChild(face);
+    return { card, face, back };
+  }
+
+  function renderDeck(count, specials){
+    clearDeck();
+    const refs = [];
+    for(let i=0;i<count;i++){
+      const ref = makeCard(!!specials[i]);
+      elDeck.appendChild(ref.card);
+      refs.push(ref);
+    }
+    return refs;
+  }
+
+  function deckEnter(){
+    elDeck.classList.add("enter");
+    return sleep(DECK_ENTER_MS);
+  }
+
+  function sleep(ms){ return new Promise(res=>setTimeout(res, ms)); }
+
+  async function flipOne(ref, value){
+    // ensure no early reveal
+    ref.face.textContent = "";
+    ref.card.classList.remove("flipping");
+    void ref.card.offsetWidth;
+
+    // start flip
+    ref.face.textContent = value; // set right before animation (still not visible until rotated)
+    ref.card.classList.add("flipping");
+
+    // wait animation end
+    await sleep(180);
+    ref.card.classList.remove("flipping");
+    // keep at 180deg visually by setting transform inline
+    // (CSS animation ends at 180 but may snap; lock it)
+    ref.card.style.transform = "rotateY(180deg)";
+  }
+
+  async function runSequence(ticket){
+    const { cards, specials, text } = buildOneSet(ticket);
+
+    // badge shows ticket
+    elBadge.textContent = ticket;
+
+    // create deck (cards not visible until now)
+    const refs = renderDeck(cards.length, specials);
+
+    // entrance + pause so you can see card backs
+    await deckEnter();
+    await sleep(ENTRANCE_PAUSE_MS);
+
+    // flip one by one
+    for(let i=0;i<cards.length;i++){
+      await flipOne(refs[i], cards[i]);
+      await sleep(FLIP_GAP_MS);
+    }
+
+    // append output (includes ticket title)
+    appendOutput(text + "\n");
+  }
+
+  function appendOutput(s){
+    const cur = elOut.value || "";
+    let next = (cur ? (cur.trimEnd() + "\n") : "") + s.trimEnd();
+    // keep last N lines
+    const lines = next.split("\n");
+    if(lines.length > MAX_HISTORY_LINES){
+      next = lines.slice(lines.length - MAX_HISTORY_LINES).join("\n");
+    }
+    elOut.value = next + "\n";
+    elOut.scrollTop = elOut.scrollHeight;
+  }
+
+  async function onGen(){
+    if(busy) return;
+    setBusy(true);
+
+    // reset deck transforms (important for repeated plays)
+    clearDeck();
+
+    const ticket = elTicket.value;
+    try{
+      await runSequence(ticket);
+    }catch(e){
+      appendOutput(`【${ticket}】\n(發生錯誤：${e?.message || e})\n\n`);
+    }finally{
+      setBusy(false);
+    }
+  }
+
+  async function onCopy(){
+    const text = elOut.value.trim();
+    if(!text){
+      // no popup; iPhone friendly
+      return;
+    }
+    // Try Clipboard API
+    try{
+      await navigator.clipboard.writeText(text);
+      // silent success (iOS popups are annoying)
+      return;
+    }catch(_e){
+      // fallback: select text for manual copy
+      elOut.focus();
+      elOut.select();
+      // iOS Safari sometimes needs this
+      document.execCommand && document.execCommand("copy"); // may still be blocked, but selection helps
+    }
+  }
+
+  function onClear(){
+    if(busy) return;
+    elOut.value = "";
+    elBadge.textContent = "—";
+    clearDeck();
+  }
+
+  // Wire
+  btnGen.addEventListener("click", onGen);
+  btnCopy.addEventListener("click", onCopy);
+  btnClear.addEventListener("click", onClear);
+
+  // Initial state
+  elBadge.textContent = elTicket.value;
+})();
+</script>
+</body>
+</html>
